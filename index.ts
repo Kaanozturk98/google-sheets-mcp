@@ -344,6 +344,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 },
             },
             {
+                name: "add_rows",
+                description: "Append one or more rows to the end of a Google Sheet",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        spreadsheetId: {
+                            type: "string",
+                            description: "The ID of the spreadsheet",
+                        },
+                        sheetName: {
+                            type: "string",
+                            description:
+                                "The name of the sheet (optional, defaults to first sheet)",
+                        },
+                        values: {
+                            type: "array",
+                            items: {
+                                type: "array",
+                                items: {
+                                    type: "string",
+                                },
+                            },
+                            description: "Array of arrays, where each inner array represents a row to append",
+                        },
+                    },
+                    required: ["spreadsheetId", "values"],
+                },
+            },
+            {
                 name: "insert_column",
                 description: "Insert a new column at specified position in a Google Sheet",
                 inputSchema: {
@@ -806,6 +835,44 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                         {
                             type: "text",
                             text: `Row inserted successfully at position ${rowIndex}.`,
+                        },
+                    ],
+                    isError: false,
+                };
+            }
+
+            case "add_rows": {
+                const { spreadsheetId, sheetName, values } = args as any;
+                const title = await getSheetTitle(spreadsheetId, sheetName);
+                
+                if (!values || !Array.isArray(values) || values.length === 0) {
+                    throw new Error("Values must be a non-empty array of arrays");
+                }
+                
+                // Validate that values is an array of arrays
+                for (const row of values) {
+                    if (!Array.isArray(row)) {
+                        throw new Error("Each element in values must be an array representing a row");
+                    }
+                }
+                
+                const response = await sheets.spreadsheets.values.append({
+                    spreadsheetId,
+                    range: title,
+                    valueInputOption: "USER_ENTERED",
+                    requestBody: {
+                        values: values,
+                    },
+                });
+                
+                const rowsAdded = values.length;
+                const updatedRows = response.data.updates?.updatedRows || rowsAdded;
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Successfully added ${rowsAdded} row(s) to the end of sheet "${title}".`,
                         },
                     ],
                     isError: false,
