@@ -30,6 +30,7 @@ const server = new Server(
 );
 
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    console.error(`[MCP Request] ReadResource: ${request.params.uri}`);
     const fileId = request.params.uri.replace("gsheets:///", "");
 
     // Get spreadsheet information
@@ -448,6 +449,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+    console.error(`[MCP Request] CallTool: ${name}`, JSON.stringify(args, null, 2));
 
     // Helper function to get sheet title
     async function getSheetTitle(
